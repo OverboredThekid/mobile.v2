@@ -38,8 +38,15 @@
             <!-- Venue Information -->
             @if($this->hasVenue())
                 <div class="space-y-3">
-                    {{ ($this->getShiftAction(shiftActions::VENUE_DETAILS->value))(['venue_id' => $shift['venue']['id']]) }}
-                     <x-filament-actions::modals />
+                   <x-filament::modal>
+    <x-slot name="trigger" slideOver>
+        <x-filament::button outlined icon="heroicon-o-map-pin">
+            {{ $venueDto->getDisplayName() }}
+        </x-filament::button>
+    </x-slot>
+   @livewire('user.component.venue-details', ['venue' => $shift['venue']])
+    {{-- Modal content --}}
+</x-filament::modal>
                     <!-- Venue Type Badges -->
                     @if(!empty($venueDto->venue_type))
                         <div class="flex flex-wrap gap-2">

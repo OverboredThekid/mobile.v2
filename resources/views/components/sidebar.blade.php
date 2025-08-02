@@ -2,216 +2,111 @@
     $user = app(\App\Services\AuthApiService::class)->getStoredUser();
 @endphp
 
-<div x-data="sidebar()" class="relative flex">
-    <!-- Mobile backdrop overlay -->
-    <div x-show="sidebarOpen" x-transition.opacity.duration.300ms @click="sidebarOpen = false"
-        class="fixed inset-0 bg-opacity-50 z-40 md:hidden"></div>
+<div x-data="{ sidebarOpen: false }" class="relative flex">
+    <!-- Overlay -->
+    <div 
+        x-show="sidebarOpen"
+        x-cloak
+        x-transition.opacity.duration.200ms
+        @click="sidebarOpen = false"
+        class="fixed inset-0 bg-black/50 z-38 md:hidden"
+    ></div>
 
     <!-- Sidebar -->
-    <div :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen}"
-        class="fixed top-0 left-0 z-39 h-full w-80 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col border-r border-gray-800 -translate-x-full md:translate-x-0">
-        <!-- Mobile: starts off-screen, desktop: always visible -->
-
+    <aside
+        x-cloak
+        x-show="sidebarOpen || window.innerWidth >= 768"
+        x-transition:enter="transition transform ease-out duration-300"
+        x-transition:enter-start="-translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition transform ease-in duration-300"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="-translate-x-full"
+        class="fixed md:relative top-0 left-0 z-39 w-80 h-full bg-[#0D0D0D] text-white border-r border-gray-800 flex flex-col transform md:translate-x-0 transition-transform duration-300 ease-in-out"
+    >
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-800">
-            <h1 class="text-xl font-semibold">{{ config('app.name') }}</h1>
-            <button @click="sidebarOpen = false" class="md:hidden p-2 rounded-lg hover:bg-gray-800">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+            <h1 class="text-lg font-semibold tracking-tight text-white">{{ config('app.name') }}</h1>
+            <button @click="sidebarOpen = false" class="md:hidden p-2 rounded-md hover:bg-gray-800">
                 <x-heroicon-o-x-mark class="w-5 h-5" />
             </button>
         </div>
 
-        <!-- Scrollable content -->
-        <div class="flex-1 overflow-y-auto">
-            <!-- Priority Section -->
-            <div class="px-6 py-4">
-                <nav class="space-y-1">
-                    <a href="{{ route('shift-requests') }}"
-                        class="group flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-                        <div class="flex items-center">
-                            <x-heroicon-o-calendar class="w-5 h-5 text-red-400 mr-3" />
-                            <span>Shift Requests</span>
-                        </div>
-                        <span id="shift-requests-count" class="bg-red-500 text-white text-xs px-2 py-1 rounded-full hidden">0</span>
-                    </a>
-                    <a href="{{ route('available-shifts') }}"
-                        class="group flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-                        <div class="flex items-center">
-                            <x-heroicon-o-clock class="w-5 h-5 text-yellow-400 mr-3" />
-                            <span>Available Shifts</span>
-                        </div>
-                        <span id="available-shifts-count" class="bg-yellow-500 text-black text-xs px-2 py-1 rounded-full hidden">0</span>
-                    </a>
-                </nav>
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto space-y-6 py-4">
+            <!-- Pinned Buttons -->
+            <div class="px-6">
+                <div class="space-y-3">
+                    <x-sidebar.nav-item icon="heroicon-o-calendar" route="shift-requests" color="red" label="Shift Requests" badge-id="shift-requests-count" />
+                    <x-sidebar.nav-item icon="heroicon-o-clock" route="available-shifts" color="yellow" label="Available Shifts" badge-id="available-shifts-count" />
+                </div>
             </div>
 
-            <!-- Company Section -->
-            <div class="px-6 py-4">
-                <h2 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Company</h2>
-                <nav class="grid grid-cols-2 gap-3">
-                    <a href="{{ route('blog') }}"
-                        class="flex flex-col items-center justify-center p-4 rounded-lg hover:bg-gray-800 transition-colors">
-                        <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center mb-2">
-                            <x-heroicon-o-document-text class="w-5 h-5 text-gray-300" />
-                        </div>
-                        <span class="text-sm font-medium">Blog</span>
-                    </a>
-                    <a href="{{ route('faq') }}"
-                        class="flex flex-col items-center justify-center p-4 rounded-lg hover:bg-gray-800 transition-colors">
-                        <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center mb-2">
-                            <x-heroicon-o-question-mark-circle class="w-5 h-5 text-gray-300" />
-                        </div>
-                        <span class="text-sm font-medium">FAQ</span>
-                    </a>
-                    <a href="{{ route('resources') }}"
-                        class="flex flex-col items-center justify-center p-4 rounded-lg hover:bg-gray-800 transition-colors">
-                        <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center mb-2">
-                            <x-heroicon-o-book-open class="w-5 h-5 text-gray-300" />
-                        </div>
-                        <span class="text-sm font-medium">Resources</span>
-                    </a>
-                    <a href="{{ route('contacts') }}"
-                        class="flex flex-col items-center justify-center p-4 rounded-lg hover:bg-gray-800 transition-colors">
-                        <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center mb-2">
-                            <x-heroicon-o-users class="w-5 h-5 text-gray-300" />
-                        </div>
-                        <span class="text-sm font-medium">Contacts</span>
-                    </a>
-                </nav>
+            <!-- Grid Navigation -->
+            <div class="px-6">
+                <h2 class="text-xs text-gray-500 uppercase mb-3">Company</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <x-sidebar.grid-button icon="heroicon-o-document-text" route="blog" label="Blog" />
+                    <x-sidebar.grid-button icon="heroicon-o-question-mark-circle" route="faq" label="FAQ" />
+                    <x-sidebar.grid-button icon="heroicon-o-book-open" route="resources" label="Resources" />
+                    <x-sidebar.grid-button icon="heroicon-o-users" route="contacts" label="Contacts" />
+                </div>
             </div>
 
-            <!-- Manage Section -->
-            <div class="px-6 py-4">
-                <h2 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Manage</h2>
-                <nav class="space-y-1">
-                    <a href="{{ route('time-off') }}"
-                        class="group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-                        <x-heroicon-o-calendar-days class="w-5 h-5 text-green-400 mr-3" />
-                        <span>Time Off</span>
-                    </a>
-                    <a href="{{ route('availability') }}"
-                        class="group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-                        <x-heroicon-o-check-circle class="w-5 h-5 text-green-400 mr-3" />
-                        <span>Availability</span>
-                    </a>
-                </nav>
+            <!-- Management -->
+            <div class="px-6">
+                <h2 class="text-xs text-gray-500 uppercase mb-3">Manage</h2>
+                <div class="space-y-3">
+                    <x-sidebar.nav-item icon="heroicon-o-calendar-days" route="time-off" color="green" label="Time Off" />
+                    <x-sidebar.nav-item icon="heroicon-o-check-circle" route="availability" color="green" label="Availability" />
+                </div>
             </div>
 
-            <!-- Admin Section -->
-            <div class="px-6 py-4">
-                <h2 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Admin</h2>
-                <nav class="space-y-1">
-                    <a href="{{ route('manage-punches') }}"
-                        class="group flex items-center px-3 py-3 text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
-                        <x-heroicon-o-finger-print class="w-5 h-5 text-purple-400 mr-3" />
-                        <span>Manage Punches</span>
-                    </a>
-                </nav>
+            <!-- Admin -->
+            <div class="px-6">
+                <h2 class="text-xs text-gray-500 uppercase mb-3">Admin</h2>
+                <x-sidebar.nav-item icon="heroicon-o-finger-print" route="manage-punches" color="purple" label="Manage Punches" />
             </div>
         </div>
 
-        <!-- User Profile Section (Bottom) -->
-        <div class="border-t border-gray-800 p-6">
-            <!-- User Info -->
+        <!-- User Profile -->
+        <div class="border-t border-gray-800 p-6 space-y-4">
             @if($user)
-                <div class="flex items-center mb-4">
-                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                        <span class="text-sm font-medium text-white">{{ substr($user['name'] ?? 'U', 0, 1) }}</span>
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white">
+                        {{ substr($user['name'] ?? 'U', 0, 1) }}
                     </div>
-                    <div class="ml-3 flex-1">
-                        <p class="text-sm font-medium text-white">{{ $user['name'] ?? 'User' }}</p>
-                        <p class="text-xs text-gray-400">{{ $user['email'] ?? 'user@example.com' }}</p>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold">{{ $user['name'] }}</p>
+                        <p class="text-xs text-gray-400">{{ $user['email'] }}</p>
                     </div>
-                    <button class="p-1 rounded-lg hover:bg-gray-800">
+                    <button class="p-1 hover:bg-gray-800 rounded">
                         <x-heroicon-o-chevron-right class="w-4 h-4 text-gray-400" />
                     </button>
                 </div>
-            @else
-                <div class="flex items-center mb-4">
-                    <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
-                        <span class="text-sm font-medium text-white">?</span>
-                    </div>
-                    <div class="ml-3 flex-1">
-                        <p class="text-sm font-medium text-white">Loading...</p>
-                        <p class="text-xs text-gray-400">Fetching user data</p>
-                    </div>
-                </div>
             @endif
 
-            <!-- Action Buttons -->
             <div class="grid grid-cols-2 gap-3">
-                <a href="{{ route('my-hours') }}"
-                    class="flex items-center justify-center px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                    <x-heroicon-o-clock class="w-4 h-4 mr-2" />
-                    <span class="text-sm font-medium">My Hours</span>
+                <a href="{{ route('my-hours') }}" class="flex justify-center items-center gap-1 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm">
+                    <x-heroicon-o-clock class="w-4 h-4" /> My Hours
                 </a>
-                <form method="POST" action="{{ route('logout') }}" class="inline">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit"
-                        class="w-full flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                        <x-heroicon-o-arrow-right-on-rectangle class="w-4 h-4 mr-2" />
-                        <span class="text-sm font-medium">Logout</span>
+                    <button type="submit" class="flex justify-center items-center gap-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">
+                        <x-heroicon-o-arrow-right-on-rectangle class="w-4 h-4" /> Logout
                     </button>
                 </form>
             </div>
         </div>
-    </div>
+    </aside>
 
-    <!-- Mobile toggle button -->
-    <button @click="sidebarOpen = !sidebarOpen" x-show="!sidebarOpen"
-        class="fixed top-4 right-4 z-39 p-2 rounded-lg bg-gray-900 text-white md:hidden">
+    <!-- Mobile Toggle -->
+    <button 
+        x-show="!sidebarOpen"
+        x-cloak
+        @click="sidebarOpen = !sidebarOpen"
+        class="fixed top-4 right-4 z-40 p-2 rounded-md bg-[#0D0D0D] text-white md:hidden"
+    >
         <x-heroicon-o-bars-3 class="w-6 h-6" />
     </button>
-
-    <script>
-        function sidebar() {
-            return {
-                sidebarOpen: false, // Start closed on mobile to prevent flash
-
-                init() {
-                    // Handle window resize
-                    window.addEventListener('resize', () => {
-                        if (window.innerWidth >= 768) {
-                            this.sidebarOpen = true;
-                        } else {
-                            this.sidebarOpen = false;
-                        }
-                    });
-
-                    // Set initial state based on screen size
-                    if (window.innerWidth >= 768) {
-                        this.sidebarOpen = true;
-                    }
-
-                    // Load counts in background using the correct endpoint
-                    this.loadCounts();
-                },
-
-                async loadCounts() {
-                    try {
-                        // Use the correct endpoint that exists
-                        const response = await fetch('/api/dashboard/counts');
-                        if (response.ok) {
-                            const data = await response.json();
-                            
-                            // Update UI
-                            const shiftRequestsElement = document.getElementById('shift-requests-count');
-                            const availableShiftsElement = document.getElementById('available-shifts-count');
-
-                            if (shiftRequestsElement && data.shift_requests_count > 0) {
-                                shiftRequestsElement.textContent = data.shift_requests_count;
-                                shiftRequestsElement.classList.remove('hidden');
-                            }
-
-                            if (availableShiftsElement && data.available_shifts_count > 0) {
-                                availableShiftsElement.textContent = data.available_shifts_count;
-                                availableShiftsElement.classList.remove('hidden');
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Failed to load counts:', error);
-                    }
-                }
-            }
-        }
-    </script>
-</div> 
+</div>
