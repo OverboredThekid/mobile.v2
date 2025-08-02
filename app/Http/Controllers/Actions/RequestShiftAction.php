@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Actions;
 
 use App\Models\AvailableShift;
+use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
+use Illuminate\Database\Eloquent\Model;
 
 class RequestShiftAction extends Action
 {
     public function setUp(): void
     {
-        $this->label(fn(?AvailableShift $record) => 'Request');
+        $this->label(fn(?Model $record) => 'Request');
         $this->color('success');
         $this->record(function (array $arguments) {
             static $cachedShift = null;
@@ -22,13 +25,20 @@ class RequestShiftAction extends Action
     
             return $cachedShift;
         });
+        $this->rateLimit(5)
+        ->rateLimitedNotification(
+           fn (TooManyRequestsException $exception): Notification => Notification::make()
+                ->warning()
+                ->title('Slow down!')
+                ->body("You can try again in {$exception->secondsUntilAvailable} seconds."),
+        );
         $this->outlined();
         $this->requiresConfirmation();
         $this->modalWidth('sm');
-        $this->modalHeading(fn(?AvailableShift $record) => 'Request Shift');
-        $this->modalDescription(fn(?AvailableShift $record) => 'Request to work @' . ($record->start_time ?? ''));
-        $this->modalSubmitActionLabel(fn(?AvailableShift $record) => 'Request Shift');
-        $this->modalCancelActionLabel(fn(?AvailableShift $record) => 'Cancel');
+        $this->modalHeading(fn(?Model $record) => 'Request Shift');
+        $this->modalDescription(fn(?Model $record) => 'Request to work @' . ($record->start_time ?? ''));
+        $this->modalSubmitActionLabel(fn(?Model $record) => 'Request Shift');
+        $this->modalCancelActionLabel(fn(?Model $record) => 'Cancel');
         $this->schema([
             Section::make('Reason (Optional)')
                 ->schema([
@@ -39,7 +49,7 @@ class RequestShiftAction extends Action
                 ])->collapsed(true)
                 ->contained(false),
         ]);
-        $this->action(function (?AvailableShift $record, array $data) {
+        $this->action(function (?Model $record, array $data) {
             if (!$record) {
                 return;
             }

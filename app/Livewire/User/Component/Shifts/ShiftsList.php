@@ -5,6 +5,7 @@ namespace App\Livewire\User\Component\Shifts;
 use App\Http\Controllers\API\ShiftsApi;
 use Livewire\Component;
 use Livewire\Attributes\Lazy;
+use Livewire\Attributes\On;
 
 #[Lazy]
 class ShiftsList extends Component
@@ -16,6 +17,20 @@ class ShiftsList extends Component
     public $perPage = 10;
     public $hasMoreShifts = true;
     public $loadingMore = false;
+    
+    // Cache for each tab's data
+    public $tabCache = [
+        'all' => [],
+        'upcoming' => [],
+        'past' => []
+    ];
+    
+    // Loading states for each tab
+    public $tabLoading = [
+        'all' => false,
+        'upcoming' => false,
+        'past' => false
+    ];
 
     protected ShiftsApi $shiftsApi;
 
@@ -27,25 +42,41 @@ class ShiftsList extends Component
     public function mount($activeTab = 'upcoming')
     {
         $this->activeTab = $activeTab;
-        $this->loadInitialShifts();
+        $this->loadTabData($activeTab);
     }
 
-    public function loadInitialShifts()
+    public function loadTabData($tab, $forceRefresh = false)
     {
-        $this->loading = true;
-        
-        try {
-            $method = 'get' . ucfirst($this->activeTab) . 'Data';
-            $this->shifts = $this->shiftsApi->$method($this->currentPage, $this->perPage);
-            
-            // Check if there are more shifts
-            $this->hasMoreShifts = count($this->shifts) >= $this->perPage;
-        } catch (\Exception $e) {
-            $this->shifts = [];
-            $this->hasMoreShifts = false;
+        // If we have cached data and not forcing refresh, use it immediately
+        if (!$forceRefresh && !empty($this->tabCache[$tab])) {
+            $this->shifts = $this->tabCache[$tab];
+            $this->loading = false;
+            return;
         }
         
-        $this->loading = false;
+        // Set loading state for this tab
+        $this->tabLoading[$tab] = true;
+        $this->loading = true;
+        
+        // Load data synchronously for immediate response
+        $this->loadTabDataSync($tab);
+    }
+
+    public function loadTabDataSync($tab)
+    {
+        try {
+            $method = 'get' . ucfirst($tab) . 'Data';
+            $shifts = $this->shiftsApi->$method(1, $this->perPage);
+            
+            // Update the cache and display
+            $this->updateTabData($tab, $shifts);
+        } catch (\Exception $e) {
+            $this->tabLoading[$tab] = false;
+            $this->loading = false;
+            
+            // Log the error
+            \Illuminate\Support\Facades\Log::error("Failed to load tab data for {$tab}: {$e->getMessage()}");
+        }
     }
 
     public function loadMoreShifts()
@@ -64,6 +95,9 @@ class ShiftsList extends Component
             if (!empty($newShifts)) {
                 $this->shifts = array_merge($this->shifts, $newShifts);
                 $this->hasMoreShifts = count($newShifts) >= $this->perPage;
+                
+                // Update cache
+                $this->tabCache[$this->activeTab] = $this->shifts;
             } else {
                 $this->hasMoreShifts = false;
             }
@@ -79,7 +113,26 @@ class ShiftsList extends Component
         $this->activeTab = $tab;
         $this->currentPage = 1;
         $this->hasMoreShifts = true;
-        $this->loadInitialShifts();
+        
+        // Load tab data (will use cache if available)
+        $this->loadTabData($tab);
+    }
+
+    public function refreshTabData($tab)
+    {
+        $this->loadTabData($tab, true);
+    }
+
+    public function updateTabData($tab, $data)
+    {
+        $this->tabCache[$tab] = $data;
+        $this->tabLoading[$tab] = false;
+        
+        // If this is the active tab, update the display
+        if ($this->activeTab === $tab) {
+            $this->shifts = $data;
+            $this->loading = false;
+        }
     }
 
     public function render()

@@ -9,6 +9,8 @@ enum shiftActions: string
     case REQUEST_SHIFT = 'requestShift';
     case ACCEPT_SHIFT = 'acceptShift';
     case DECLINE_SHIFT = 'declineShift';
+    case SHIFT_DETAILS = 'shiftDetails';
+    case VENUE_DETAILS = 'venueDetails';
 
     public function label(): string
     {
@@ -18,6 +20,8 @@ enum shiftActions: string
             self::REQUEST_SHIFT => 'Request Shift',
             self::ACCEPT_SHIFT => 'Accept Shift',
             self::DECLINE_SHIFT => 'Decline Shift',
+            self::SHIFT_DETAILS => 'Shift Details',
+            self::VENUE_DETAILS => 'Venue Details',
         };
     }
     

@@ -26,6 +26,8 @@ trait ApiControllerTrait
             'json_fields' => [], // Fields that should be decoded from JSON
             'scope_methods' => [], // Available scope methods on the model
             'use_team_id' => true, // Whether to use team ID in endpoints
+            'related_data' => [], // Related data to resolve (e.g., ['venue' => VenuesApi::class, 'workers' => UsersApi::class])
+            'has_pagination' => true, // Whether the API uses pagination
         ];
     }
 
@@ -41,6 +43,7 @@ trait ApiControllerTrait
         $cachePrefix = $config['cache_prefix'];
         $jsonFields = $config['json_fields'] ?? [];
         $useTeamId = $config['use_team_id'] ?? true;
+        $hasPagination = $config['has_pagination'] ?? true;
 
         try {
             $api = new ApiService();
@@ -56,21 +59,28 @@ trait ApiControllerTrait
 
             if ($isStale) {
                 // Build data endpoint
-                $dataEndpoint = $this->buildDataEndpoint($baseEndpoint, $filter, $page, $perPage, $customFilters);
+                $dataEndpoint = $this->buildDataEndpoint($baseEndpoint, $filter, $page, $perPage, $customFilters, $hasPagination);
                 $response = $api->get($dataEndpoint, $useTeamId);
                 $response = is_array($response) ? $response : (array) $response;
                 
                 // Handle different response structures
                 $data = $response;
                 Log::info("{$cachePrefix} API response keys: " . implode(', ', array_keys($response)));
-                if (isset($response['data'])) {
-                    // Response has 'data' key (like shifts API)
-                    $data = $response['data'];
-                    Log::info("{$cachePrefix} extracted data from 'data' key: " . count($data) . " items");
-                } elseif (isset($response['links']) && isset($response['meta'])) {
-                    // Response has pagination structure (like shift-requests API)
-                    $data = $response['data'] ?? [];
-                    Log::info("{$cachePrefix} extracted data from paginated response: " . count($data) . " items");
+                
+                if ($hasPagination) {
+                    if (isset($response['data'])) {
+                        // Response has 'data' key (like shifts API)
+                        $data = $response['data'];
+                        Log::info("{$cachePrefix} extracted data from 'data' key: " . count($data) . " items");
+                    } elseif (isset($response['links']) && isset($response['meta'])) {
+                        // Response has pagination structure (like shift-requests API)
+                        $data = $response['data'] ?? [];
+                        Log::info("{$cachePrefix} extracted data from paginated response: " . count($data) . " items");
+                    }
+                } else {
+                    // Non-paginated response - data is the direct array
+                    $data = $response;
+                    Log::info("{$cachePrefix} non-paginated response: " . count($data) . " items");
                 }
                 
                 if (is_array($data)) {
@@ -103,11 +113,16 @@ trait ApiControllerTrait
             // Apply filters to local data
             $query = $this->buildLocalQuery($modelClass, $filter, $customFilters);
             
-            // Apply pagination
-            $results = $query->orderBy('start_time', 'asc')
-                            ->skip(($page - 1) * $perPage)
-                            ->take($perPage)
-                            ->get();
+            if ($hasPagination) {
+                // Apply pagination for paginated APIs
+                $results = $query->orderBy('start_time', 'asc')
+                                ->skip(($page - 1) * $perPage)
+                                ->take($perPage)
+                                ->get();
+            } else {
+                // Get all results for non-paginated APIs
+                $results = $query->get();
+            }
             
             // Convert to array and decode JSON fields
             return $this->convertToArray($results, $jsonFields);
@@ -116,10 +131,15 @@ trait ApiControllerTrait
 
             // Fallback to local data
             $fallback = $this->buildLocalQuery($modelClass, $filter, $customFilters);
-            $fallback = $fallback->orderBy('start_time', 'asc')
-                                ->skip(($page - 1) * $perPage)
-                                ->take($perPage)
-                                ->get();
+            
+            if ($hasPagination) {
+                $fallback = $fallback->orderBy('start_time', 'asc')
+                                    ->skip(($page - 1) * $perPage)
+                                    ->take($perPage)
+                                    ->get();
+            } else {
+                $fallback = $fallback->get();
+            }
             
             return $this->convertToArray($fallback, $jsonFields);
         }
@@ -369,7 +389,7 @@ trait ApiControllerTrait
     /**
      * Build data endpoint URL
      */
-    protected function buildDataEndpoint(string $baseEndpoint, string $filter, int $page, int $perPage, array $customFilters = []): string
+    protected function buildDataEndpoint(string $baseEndpoint, string $filter, int $page, int $perPage, array $customFilters = [], bool $hasPagination = true): string
     {
         $endpoint = $baseEndpoint;
         
@@ -379,11 +399,16 @@ trait ApiControllerTrait
             $params['filter'] = $filter;
         }
         
-        // Add pagination and custom filters
-        $params = array_merge($params, $customFilters, [
-            'per_page' => $perPage,
-            'page' => $page,
-        ]);
+        // Add pagination and custom filters only for paginated APIs
+        if ($hasPagination) {
+            $params = array_merge($params, $customFilters, [
+                'per_page' => $perPage,
+                'page' => $page,
+            ]);
+        } else {
+            // For non-paginated APIs, only add custom filters
+            $params = array_merge($params, $customFilters);
+        }
         
         $queryParams = http_build_query($params);
         return $endpoint . "?{$queryParams}";
@@ -449,7 +474,9 @@ trait ApiControllerTrait
     {
         return $collection->map(function ($item) use ($jsonFields) {
             $itemArray = $item->toArray();
-            return $this->decodeJsonFields($itemArray, $jsonFields);
+            $itemArray = $this->decodeJsonFields($itemArray, $jsonFields);
+            $itemArray = $this->resolveRelatedData($itemArray);
+            return $itemArray;
         })->toArray();
     }
 
@@ -460,10 +487,253 @@ trait ApiControllerTrait
     {
         foreach ($jsonFields as $field) {
             if (isset($itemArray[$field])) {
-                $itemArray[$field] = json_decode($itemArray[$field], true) ?? [];
+                $value = $itemArray[$field];
+                
+                // If it's already an array, keep it as is
+                if (is_array($value)) {
+                    continue;
+                }
+                
+                // If it's a string, try to decode it
+                if (is_string($value)) {
+                    $decoded = json_decode($value, true);
+                    $itemArray[$field] = $decoded !== null ? $decoded : $value;
+                }
+                
+                // If it's null or other types, keep as is
             }
         }
         
         return $itemArray;
+    }
+
+    /**
+     * Resolve related data for an item
+     */
+    protected function resolveRelatedData(array $itemArray): array
+    {
+        $config = $this->getApiConfig();
+        $relatedData = $config['related_data'] ?? [];
+
+        foreach ($relatedData as $field => $apiControllerClass) {
+            if (isset($itemArray[$field]) && is_array($itemArray[$field])) {
+                $itemArray[$field] = $this->resolveRelatedItem($itemArray[$field], $apiControllerClass);
+            }
+        }
+
+        // Handle nested data that doesn't have its own API controller
+        $itemArray = $this->resolveNestedData($itemArray);
+
+        return $itemArray;
+    }
+
+    /**
+     * Resolve nested data that doesn't have its own API controller
+     */
+    protected function resolveNestedData(array $itemArray): array
+    {
+        // Handle address data within venues
+        if (isset($itemArray['address']) && is_array($itemArray['address'])) {
+            $itemArray['address'] = $this->resolveAddressData($itemArray['address']);
+        }
+
+        return $itemArray;
+    }
+
+    /**
+     * Resolve address data and save it to the database
+     */
+    protected function resolveAddressData(array $addressData): array
+    {
+        try {
+            // Check if we have an address ID to resolve
+            if (isset($addressData['id'])) {
+                $address = \App\Models\Address::where('api_id', $addressData['id'])->first();
+                
+                if ($address) {
+                    // Check if the address data is stale
+                    if ($this->isRelatedDataStale($address->toArray())) {
+                        // Update the address with fresh data
+                        $address->update([
+                            'full_address' => $addressData['full_address'] ?? $address->full_address,
+                            'street' => $addressData['street'] ?? $address->street,
+                            'city' => $addressData['city'] ?? $address->city,
+                            'state' => $addressData['state'] ?? $address->state,
+                            'zip_code' => $addressData['zip_code'] ?? $address->zip_code,
+                            'country' => $addressData['country'] ?? $address->country,
+                            'comment' => $addressData['comment'] ?? $address->comment,
+                            'lat' => $addressData['lat'] ?? $address->lat,
+                            'lng' => $addressData['lng'] ?? $address->lng,
+                            'address' => $addressData['address'] ?? $address->address,
+                            'fetched_at' => now(),
+                        ]);
+                    }
+                    
+                    return $address->toArray();
+                } else {
+                    // Create new address record
+                    $address = \App\Models\Address::create([
+                        'api_id' => $addressData['id'],
+                        'full_address' => $addressData['full_address'] ?? '',
+                        'street' => $addressData['street'] ?? null,
+                        'city' => $addressData['city'] ?? null,
+                        'state' => $addressData['state'] ?? null,
+                        'zip_code' => $addressData['zip_code'] ?? null,
+                        'country' => $addressData['country'] ?? null,
+                        'comment' => $addressData['comment'] ?? null,
+                        'lat' => $addressData['lat'] ?? null,
+                        'lng' => $addressData['lng'] ?? null,
+                        'address' => $addressData['address'] ?? null,
+                        'fetched_at' => now(),
+                    ]);
+                    
+                    return $address->toArray();
+                }
+            }
+            
+            // If no ID, return the original data
+            return $addressData;
+        } catch (\Exception $e) {
+            Log::error("Failed to resolve address data: " . $e->getMessage());
+            return $addressData;
+        }
+    }
+
+    /**
+     * Resolve a single related item
+     */
+    protected function resolveRelatedItem(array $relatedData, string $apiControllerClass): array
+    {
+        try {
+            $apiController = new $apiControllerClass();
+            
+            // For venue data, check different possible ID fields
+            if ($apiControllerClass === \App\Http\Controllers\API\VenuesApi::class) {
+                $venueId = $relatedData['id'] ?? $relatedData['venue_id'] ?? null;
+                if ($venueId) {
+                    $venueId = $this->resolveVenueApiId($venueId);
+                    if ($venueId) {
+                        $resolvedData = $apiController->getItemById($venueId);
+                        if (!empty($resolvedData)) {
+                            // If this is venue data, we need to handle the address relationship
+                            $resolvedData = $this->linkVenueAddress($resolvedData);
+                            return $resolvedData;
+                        }
+                    }
+                }
+            } else {
+                // For other APIs, check if we have an ID to resolve
+                if (isset($relatedData['id'])) {
+                    $resolvedData = $apiController->getItemById($relatedData['id']);
+                    if (!empty($resolvedData)) {
+                        return $resolvedData;
+                    }
+                }
+            }
+            
+            // If no ID or resolution failed, return the original data
+            return $relatedData;
+        } catch (\Exception $e) {
+            Log::error("Failed to resolve related data with {$apiControllerClass}: " . $e->getMessage());
+            return $relatedData;
+        }
+    }
+
+    /**
+     * Resolve venue API ID from internal ID or API ID
+     */
+    protected function resolveVenueApiId($id): ?string
+    {
+        // First, try to find by API ID
+        $venue = \App\Models\Venue::where('api_id', $id)->first();
+        if ($venue) {
+            return $venue->api_id;
+        }
+        
+        // If not found by API ID, try to find by internal ID
+        $venue = \App\Models\Venue::where('id', $id)->first();
+        if ($venue) {
+            return $venue->api_id;
+        }
+        
+        // If still not found, assume it's already an API ID
+        return $id;
+    }
+
+    /**
+     * Link venue address to the venue model
+     */
+    protected function linkVenueAddress(array $venueData): array
+    {
+        if (isset($venueData['address']) && is_array($venueData['address'])) {
+            try {
+                // Find or create the venue
+                $venue = \App\Models\Venue::where('api_id', $venueData['id'])->first();
+                
+                if ($venue) {
+                    // Find or create the address
+                    $address = \App\Models\Address::where('api_id', $venueData['address']['id'])->first();
+                    
+                    if (!$address) {
+                        // Create new address
+                        $address = \App\Models\Address::create([
+                            'api_id' => $venueData['address']['id'],
+                            'addressable_type' => \App\Models\Venue::class,
+                            'addressable_id' => $venue->id,
+                            'full_address' => $venueData['address']['full_address'] ?? '',
+                            'street' => $venueData['address']['street'] ?? null,
+                            'city' => $venueData['address']['city'] ?? null,
+                            'state' => $venueData['address']['state'] ?? null,
+                            'zip_code' => $venueData['address']['zip_code'] ?? null,
+                            'country' => $venueData['address']['country'] ?? null,
+                            'comment' => $venueData['address']['comment'] ?? null,
+                            'lat' => $venueData['address']['lat'] ?? null,
+                            'lng' => $venueData['address']['lng'] ?? null,
+                            'address' => $venueData['address']['address'] ?? null,
+                            'fetched_at' => now(),
+                        ]);
+                    } else {
+                        // Update existing address
+                        $address->update([
+                            'addressable_type' => \App\Models\Venue::class,
+                            'addressable_id' => $venue->id,
+                            'full_address' => $venueData['address']['full_address'] ?? $address->full_address,
+                            'street' => $venueData['address']['street'] ?? $address->street,
+                            'city' => $venueData['address']['city'] ?? $address->city,
+                            'state' => $venueData['address']['state'] ?? $address->state,
+                            'zip_code' => $venueData['address']['zip_code'] ?? $address->zip_code,
+                            'country' => $venueData['address']['country'] ?? $address->country,
+                            'comment' => $venueData['address']['comment'] ?? $address->comment,
+                            'lat' => $venueData['address']['lat'] ?? $address->lat,
+                            'lng' => $venueData['address']['lng'] ?? $address->lng,
+                            'address' => $venueData['address']['address'] ?? $address->address,
+                            'fetched_at' => now(),
+                        ]);
+                    }
+                    
+                    // Update the venue data with the linked address
+                    $venueData['address'] = $address->toArray();
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to link venue address: " . $e->getMessage());
+            }
+        }
+        
+        return $venueData;
+    }
+
+    /**
+     * Check if related data is stale and needs resolution
+     */
+    protected function isRelatedDataStale(array $relatedData): bool
+    {
+        // Check if data has a timestamp and is older than 5 minutes
+        if (isset($relatedData['fetched_at'])) {
+            $fetchedAt = \Carbon\Carbon::parse($relatedData['fetched_at']);
+            return $fetchedAt->diffInMinutes(now()) > 5;
+        }
+        
+        // If no timestamp, consider it stale
+        return true;
     }
 } 

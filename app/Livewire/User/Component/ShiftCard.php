@@ -6,14 +6,17 @@ use App\Enum\shiftActions;
 use App\Traits\HasShiftActions;
 use App\Traits\HasVenueModal;
 use App\Traits\HasShiftDetailsModal;
+use App\Http\Dto\VenueDto;
 use Filament\Actions\Action;
 use Livewire\Component;
+use Livewire\Attributes\Lazy;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Illuminate\Support\Str;
 
+#[Lazy]
 class ShiftCard extends Component implements HasActions, HasSchemas
 {
     use HasShiftActions;
@@ -125,6 +128,46 @@ class ShiftCard extends Component implements HasActions, HasSchemas
         return $this->shift['requested_by'] ?? null;
     }
 
+    public function getVenueDto(): ?VenueDto
+    {
+        if (!is_array($this->shift) || !isset($this->shift['venue'])) {
+            return null;
+        }
+        
+        return VenueDto::fromArray($this->shift['venue']);
+    }
+
+    public function getVenueName(): string
+    {
+        $venueDto = $this->getVenueDto();
+        return $venueDto ? $venueDto->getDisplayName() : ($this->shift['venue_name'] ?? 'Unknown Venue');
+    }
+
+    public function getVenueId(): ?string
+    {
+        if (!is_array($this->shift)) {
+            return null;
+        }
+        
+        // Try to get from venue object first
+        if (isset($this->shift['venue']['id'])) {
+            return $this->shift['venue']['id'];
+        }
+        
+        if (isset($this->shift['venue']['api_id'])) {
+            return $this->shift['venue']['api_id'];
+        }
+        
+        // Fallback to direct venue_id
+        return $this->shift['venue_id'] ?? null;
+    }
+
+    public function hasVenue(): bool
+    {
+        return is_array($this->shift) && 
+               (isset($this->shift['venue']) || isset($this->shift['venue_name']));
+    }
+
     public function openShiftDetails()
     {
         // Ensure we have valid shift data
@@ -143,5 +186,10 @@ class ShiftCard extends Component implements HasActions, HasSchemas
     public function render()
     {
         return view('livewire.user.component.shift-card');
+    }
+
+    public function placeholder()
+    {
+        return view('livewire.user.component.shift-card-placeholder');
     }
 }

@@ -9,7 +9,6 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class AvailableShiftsList extends Component
 {
-    public $activeTab = 'upcoming';
     public $availableShifts = [];
     public $loading = true;
     public $currentPage = 1;
@@ -24,9 +23,8 @@ class AvailableShiftsList extends Component
         $this->availableShiftsApi = $availableShiftsApi;
     }
 
-    public function mount($activeTab = 'upcoming')
+    public function mount()
     {
-        $this->activeTab = $activeTab;
         $this->loadInitialShifts();
     }
 
@@ -35,8 +33,7 @@ class AvailableShiftsList extends Component
         $this->loading = true;
         
         try {
-            $method = 'get' . ucfirst($this->activeTab) . 'Data';
-            $this->availableShifts = $this->availableShiftsApi->$method($this->currentPage, $this->perPage);
+            $this->availableShifts = $this->availableShiftsApi->getAllData($this->currentPage, $this->perPage);
             
             // Check if there are more shifts
             $this->hasMoreShifts = count($this->availableShifts) >= $this->perPage;
@@ -58,8 +55,7 @@ class AvailableShiftsList extends Component
         $this->currentPage++;
 
         try {
-            $method = 'get' . ucfirst($this->activeTab) . 'Data';
-            $newShifts = $this->availableShiftsApi->$method($this->currentPage, $this->perPage);
+            $newShifts = $this->availableShiftsApi->getAllData($this->currentPage, $this->perPage);
             
             if (!empty($newShifts)) {
                 $this->availableShifts = array_merge($this->availableShifts, $newShifts);
@@ -72,14 +68,6 @@ class AvailableShiftsList extends Component
         }
 
         $this->loadingMore = false;
-    }
-
-    public function setActiveTab($tab)
-    {
-        $this->activeTab = $tab;
-        $this->currentPage = 1;
-        $this->hasMoreShifts = true;
-        $this->loadInitialShifts();
     }
 
     public function getAvailableShiftActions($availableShift)

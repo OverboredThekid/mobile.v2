@@ -47,7 +47,6 @@ class Login extends Component
                 session()->flash('message', 'Welcome back!');
                 Notification::make()
                     ->title('System Notification')
-                    ->color('success')
                     ->icon('heroicon-o-check-circle')
                     ->body('Success! You are now logged in.')
                     ->send();

@@ -9,14 +9,28 @@ use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Url;
 
-class ShiftDetails extends Component
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use App\Traits\HasShiftActions;
+use App\Traits\HasVenueModal;
+use App\Traits\HasShiftDetailsModal;
+use Filament\Actions\Action;
+
+class ShiftDetails extends Component implements HasActions, HasSchemas
 {
+    use HasShiftActions;
+    use HasVenueModal;
+    use HasShiftDetailsModal;
+    use InteractsWithActions;
+    use InteractsWithSchemas;
     public $shiftId;
 
     #[Url]
     public $shift;
     public $shiftData = null;
-    public $actions = [];
+    public $actionEnums = [];
     public $loading = true;
     public $lastUpdated = null;
     public $activeTab = 'details';
@@ -28,15 +42,17 @@ class ShiftDetails extends Component
         $this->shiftsApi = $shiftsApi;
     }
 
-    public function mount($shiftData = null)
+    public function mount($shiftData = null, $actionEnums = [])
     {
         Log::info('ShiftDetails: mount() called', [
             'shiftData' => $shiftData ? 'present' : 'null',
             'hasApiId' => isset($shiftData['api_id']),
-            'apiId' => $shiftData['api_id'] ?? 'none'
+            'apiId' => $shiftData['api_id'] ?? 'none',
+            'actionEnums' => $actionEnums
         ]);
         
         $this->shiftData = $shiftData;
+        $this->actionEnums = $actionEnums;
         
         // Extract shift ID from data
         $this->shiftId = $shiftData['api_id'] ?? null;
@@ -179,6 +195,51 @@ class ShiftDetails extends Component
         }
         
         return VenueDto::fromArray($this->shift['venue']);
+    }
+
+    public function getVenueData(): array
+    {
+        if (!is_array($this->shift) || !isset($this->shift['venue'])) {
+            return [];
+        }
+        
+        return $this->shift['venue'];
+    }
+
+    public function hasVenue(): bool
+    {
+        return is_array($this->shift) && 
+               isset($this->shift['venue']) && 
+               is_array($this->shift['venue']) && 
+               !empty($this->shift['venue']);
+    }
+
+    public function getVenueCoordinates(): array
+    {
+        $venueDto = $this->getVenueDto();
+        
+        // Debug logging
+        \Illuminate\Support\Facades\Log::info('ShiftDetails::getVenueCoordinates', [
+            'shift_id' => $this->shiftId,
+            'has_venue' => isset($this->shift['venue']),
+            'venue_data' => $this->shift['venue'] ?? null,
+            'venueDto_exists' => $venueDto !== null,
+            'coordinates' => $venueDto ? $venueDto->getCoordinates() : [37.7749, -122.4194]
+        ]);
+        
+        return $venueDto ? $venueDto->getCoordinates() : [37.7749, -122.4194];
+    }
+
+    public function getVenueAddressString(): string
+    {
+        $venueDto = $this->getVenueDto();
+        return $venueDto ? $venueDto->getAddressString() : '';
+    }
+
+    public function hasValidVenueLocation(): bool
+    {
+        $venueDto = $this->getVenueDto();
+        return $venueDto ? $venueDto->hasValidLocation() : false;
     }
 
     public function getStatusColor()
@@ -328,6 +389,12 @@ class ShiftDetails extends Component
 
     public function render()
     {
-        return view('livewire.user.component.shift-details');
+        $venueDto = $this->getVenueDto();
+        
+        return view('livewire.user.component.shift-details', [
+            'venueDto' => $venueDto,
+            'coordinates' => $this->getVenueCoordinates(),
+            'addressString' => $this->getVenueAddressString(),
+        ]);
     }
 }

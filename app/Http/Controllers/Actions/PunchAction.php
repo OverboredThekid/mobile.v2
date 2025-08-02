@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Actions;
 
 use App\Models\Shift;
+use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 
 class PunchAction extends Action
 {
     public function setUp(): void
     {
-        $this->label(fn(?Shift $record) => 'Punch in/out');
+        $this->label(fn(?Shift $record) => data_get($record, 'last_punch_type') ? "Punch {$record->last_punch_type}" : "Punch In");
         $this->color('success');
         //$this->disabled(fn(?Shift $record) => !$record->can_punch);
         $this->record(function (array $arguments) {
@@ -21,6 +23,13 @@ class PunchAction extends Action
     
             return $cachedShift;
         });
+        $this->rateLimit(5)
+        ->rateLimitedNotification(
+           fn (TooManyRequestsException $exception): Notification => Notification::make()
+                ->warning()
+                ->title('Slow down!')
+                ->body("You can try again in {$exception->secondsUntilAvailable} seconds."),
+        );
         $this->outlined();
         $this->requiresConfirmation();
         $this->modalHeading(fn(?Shift $record) => 'Punch In');

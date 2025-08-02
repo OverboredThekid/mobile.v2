@@ -44,6 +44,12 @@ class VenueDetails extends Component
 
     public function render()
     {
-        return view('livewire.user.component.venue-details');
+        $venueDto = $this->getVenueDto();
+        
+        return view('livewire.user.component.venue-details', [
+            'venueDto' => $venueDto,
+            'coordinates' => $venueDto->getCoordinates(),
+            'addressString' => $venueDto->getAddressString(),
+        ]);
     }
 }

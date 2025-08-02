@@ -9,7 +9,7 @@
 
     <!-- Sidebar -->
     <div :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen}"
-        class="fixed top-0 left-0 z-50 h-full w-80 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col border-r border-gray-800 -translate-x-full md:translate-x-0">
+        class="fixed top-0 left-0 z-39 h-full w-80 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col border-r border-gray-800 -translate-x-full md:translate-x-0">
         <!-- Mobile: starts off-screen, desktop: always visible -->
 
         <!-- Header -->
@@ -158,7 +158,7 @@
 
     <!-- Mobile toggle button -->
     <button @click="sidebarOpen = !sidebarOpen" x-show="!sidebarOpen"
-        class="fixed top-4 right-4 z-50 p-2 rounded-lg bg-gray-900 text-white md:hidden">
+        class="fixed top-4 right-4 z-39 p-2 rounded-lg bg-gray-900 text-white md:hidden">
         <x-heroicon-o-bars-3 class="w-6 h-6" />
     </button>
 

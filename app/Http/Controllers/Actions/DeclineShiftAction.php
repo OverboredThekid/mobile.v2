@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Actions;
 
 use App\Models\ShiftRequest;
+use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 
 class DeclineShiftAction extends Action
@@ -22,6 +24,13 @@ class DeclineShiftAction extends Action
 
             return $cachedShiftRequest;
         });
+        $this->rateLimit(5)
+        ->rateLimitedNotification(
+           fn (TooManyRequestsException $exception): Notification => Notification::make()
+                ->warning()
+                ->title('Slow down!')
+                ->body("You can try again in {$exception->secondsUntilAvailable} seconds."),
+        );
         $this->requiresConfirmation();
         $this->modalHeading(fn(?ShiftRequest $record) => 'Decline Shift');
         $this->modalDescription(fn(?ShiftRequest $record) => 'Are you sure you want to decline this shift?');

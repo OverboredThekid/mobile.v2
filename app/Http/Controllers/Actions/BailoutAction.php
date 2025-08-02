@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Actions;
 
 use App\Models\Shift;
+use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 
 class BailoutAction extends Action
@@ -22,6 +24,13 @@ class BailoutAction extends Action
     
             return $cachedShift;
         });
+        $this->rateLimit(2)
+        ->rateLimitedNotification(
+           fn (TooManyRequestsException $exception): Notification => Notification::make()
+                ->warning()
+                ->title('Slow down!')
+                ->body("You can try again in {$exception->secondsUntilAvailable} seconds."),
+        );
         $this->outlined();
         $this->requiresConfirmation();
         $this->modalHeading(fn(?Shift $record) => 'Bailout Shift');

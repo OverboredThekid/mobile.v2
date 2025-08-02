@@ -23,6 +23,10 @@ class ShiftRequestApi extends Controller
             'json_fields' => ['workers', 'venue'],
             'scope_methods' => ['pending'],
             'use_team_id' => true,
+            'related_data' => [
+                'venue' => \App\Http\Controllers\API\VenuesApi::class,
+                'workers' => \App\Http\Controllers\API\UsersApi::class,
+            ],
         ];
     }
 

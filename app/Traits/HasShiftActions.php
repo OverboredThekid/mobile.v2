@@ -8,6 +8,8 @@ use App\Http\Controllers\Actions\PunchAction;
 use App\Http\Controllers\Actions\RequestShiftAction;
 use App\Http\Controllers\Actions\AcceptShiftAction;
 use App\Http\Controllers\Actions\DeclineShiftAction;
+use App\Http\Controllers\Actions\ShiftDetailsAction;
+use App\Http\Controllers\Actions\VenueDetailsAction;
 use Filament\Actions\Action;
 
 trait HasShiftActions
@@ -15,9 +17,13 @@ trait HasShiftActions
     /**
      * Get action by name with dynamic record support
      */
-    public function getShiftAction(string $actionName, $record = null): Action
+    public function getShiftAction(string|Action $actionName, $record = null): Action
     {
-        $methodName = $actionName . 'Action';
+        if ($actionName instanceof Action) {
+            return $actionName;
+        }
+
+        $methodName = "{$actionName}Action";
         
         if (!method_exists($this, $methodName)) {
             throw new \BadMethodCallException("Action method {$methodName} not found");
@@ -36,9 +42,9 @@ trait HasShiftActions
     /**
      * Get action by enum value
      */
-    public function getActionByEnum(shiftActions $action, $record = null): Action
+    public function getActionByEnum(string $action, $record = null): Action
     {
-        return $this->getShiftAction($action->value, $record);
+        return $this->getShiftAction($action, $record);
     }
 
     /**
@@ -82,24 +88,19 @@ trait HasShiftActions
     }
 
     /**
-     * Magic method to handle dynamic action calls
+     * Shift Details Action
      */
-    public function __call($method, $arguments)
+    public function shiftDetailsAction(): Action
     {
-        // Handle action calls like getPunchAction($record)
-        if (str_starts_with($method, 'get') && str_ends_with($method, 'Action')) {
-            $actionName = strtolower(str_replace(['get', 'Action'], '', $method));
-            $record = $arguments[0] ?? null;
-            return $this->getShiftAction($actionName, $record);
-        }
-
-        // Handle enum-based calls like getActionByEnum(shiftActions::PUNCH, $record)
-        if ($method === 'getActionByEnum') {
-            $action = $arguments[0] ?? null;
-            $record = $arguments[1] ?? null;
-            return $this->getActionByEnum($action, $record);
-        }
-
-        throw new \BadMethodCallException("Method {$method} not found");
+        return ShiftDetailsAction::make('shiftDetails');
     }
+
+    /**
+     * Venue Details Action
+     */
+    public function venueDetailsAction(): Action
+    {
+        return VenueDetailsAction::make('venueDetails');
+    }
+
 }

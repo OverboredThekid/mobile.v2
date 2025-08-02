@@ -9,7 +9,6 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class ShiftRequestsList extends Component
 {
-    public $activeTab = 'pending';
     public $shiftRequests = [];
     public $loading = true;
     public $currentPage = 1;
@@ -24,9 +23,8 @@ class ShiftRequestsList extends Component
         $this->shiftRequestApi = $shiftRequestApi;
     }
 
-    public function mount($activeTab = 'pending')
+    public function mount()
     {
-        $this->activeTab = $activeTab;
         $this->loadInitialRequests();
     }
 
@@ -35,8 +33,7 @@ class ShiftRequestsList extends Component
         $this->loading = true;
         
         try {
-            $method = 'get' . ucfirst($this->activeTab) . 'Data';
-            $this->shiftRequests = $this->shiftRequestApi->$method($this->currentPage, $this->perPage);
+            $this->shiftRequests = $this->shiftRequestApi->getAllData($this->currentPage, $this->perPage);
             
             // Check if there are more requests
             $this->hasMoreRequests = count($this->shiftRequests) >= $this->perPage;
@@ -58,8 +55,7 @@ class ShiftRequestsList extends Component
         $this->currentPage++;
 
         try {
-            $method = 'get' . ucfirst($this->activeTab) . 'Data';
-            $newRequests = $this->shiftRequestApi->$method($this->currentPage, $this->perPage);
+            $newRequests = $this->shiftRequestApi->getAllData($this->currentPage, $this->perPage);
             
             if (!empty($newRequests)) {
                 $this->shiftRequests = array_merge($this->shiftRequests, $newRequests);
@@ -72,14 +68,6 @@ class ShiftRequestsList extends Component
         }
 
         $this->loadingMore = false;
-    }
-
-    public function setActiveTab($tab)
-    {
-        $this->activeTab = $tab;
-        $this->currentPage = 1;
-        $this->hasMoreRequests = true;
-        $this->loadInitialRequests();
     }
 
     public function getShiftRequestActions($shiftRequest)

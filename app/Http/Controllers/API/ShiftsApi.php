@@ -22,8 +22,12 @@ class ShiftsApi extends Controller
             'json_fields' => ['workers', 'venue', 'shift_request', 'documents', 'time_punches'],
             'scope_methods' => ['confirmed', 'upcoming', 'past', 'bySchedule', 'byVenue'],
             'use_team_id' => true,
+            'related_data' => [
+                'venue' => \App\Http\Controllers\API\VenuesApi::class,
+                'workers' => \App\Http\Controllers\API\UsersApi::class,
+            ],
         ];
-                }
+    }
 
     // Magic methods will handle:
     // - getUpcomingData() -> getPaginatedData('upcoming')

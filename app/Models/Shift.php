@@ -101,6 +101,14 @@ class Shift extends Model
     }
 
     /**
+     * Get Last Punch Type
+     */
+    public function getLastPunchTypeAttribute(): string
+    {
+        return $this->time_punches[0]['type'] ?? 'In';
+    }
+
+    /**
      * Check if the shift is stale based on etag
      */
     public function isStale($currentEtag): bool

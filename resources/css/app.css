@@ -22,4 +22,5 @@
         'Noto Color Emoji';
 }
 
-@variant dark (&:where(.dark, .dark *));
+
+
