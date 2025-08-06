@@ -1,5 +1,9 @@
 @php
     $user = app(\App\Services\AuthApiService::class)->getStoredUser();
+    
+    // Get counts from cache (same as ShiftActions component)
+    $shiftRequestsCount = \Illuminate\Support\Facades\Cache::get('shift_requests_count.value', 0);
+    $availableShiftsCount = \Illuminate\Support\Facades\Cache::get('available_shifts_count.value', 0);
 @endphp
 
 <div x-data="{ sidebarOpen: false }" class="relative flex">
@@ -37,8 +41,8 @@
             <!-- Pinned Buttons -->
             <div class="px-6">
                 <div class="space-y-3">
-                    <x-sidebar.nav-item icon="heroicon-o-calendar" route="shift-requests" color="red" label="Shift Requests" badge-id="shift-requests-count" />
-                    <x-sidebar.nav-item icon="heroicon-o-clock" route="available-shifts" color="yellow" label="Available Shifts" badge-id="available-shifts-count" />
+                    <x-sidebar.nav-item icon="heroicon-o-calendar" route="shift-requests" color="red" label="Shift Requests" badge-id="shift-requests-count" :badge-count="$shiftRequestsCount" />
+                    <x-sidebar.nav-item icon="heroicon-o-clock" route="available-shifts" color="yellow" label="Available Shifts" badge-id="available-shifts-count" :badge-count="$availableShiftsCount" />
                 </div>
             </div>
 

@@ -4,12 +4,22 @@ namespace App\Livewire\Dashboard\Ui;
 
 use App\Http\Controllers\API\ShiftRequestApi;
 use App\Http\Controllers\API\AvailableShiftsApi;
+use App\Traits\HasShiftActions;
 use App\Traits\HasVenueModal;
 use Livewire\Component;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Lazy;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
 
-class ShiftActions extends Component
+#[Lazy]
+class ShiftActions extends Component implements HasActions, HasSchemas
 {
+    use InteractsWithActions;
+    use InteractsWithSchemas;
+    use HasShiftActions;
     public $shiftRequestsCount = 0;
     public $availableShiftsCount = 0;
     public $loading = true;

@@ -6,12 +6,13 @@ use App\Models\ShiftRequest;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Model;
 
 class AcceptShiftAction extends Action
 {
     public function setUp(): void
     {
-        $this->label(fn(?ShiftRequest $record) => 'Accept');
+        $this->label(fn(?Model $record) => 'Accept');
         $this->color('success');
         $this->record(function (array $arguments) {
             static $cachedShiftRequest = null;
@@ -30,12 +31,12 @@ class AcceptShiftAction extends Action
                 ->body("You can try again in {$exception->secondsUntilAvailable} seconds."),
         );
         $this->requiresConfirmation();
-        $this->modalHeading(fn(?ShiftRequest $record) => 'Accept Shift');
-        $this->modalDescription(fn(?ShiftRequest $record) => 'Are you sure you want to accept this shift?');
-        $this->modalCancelActionLabel(fn(?ShiftRequest $record) => 'Cancel');
-        $this->modalSubmitActionLabel(fn(?ShiftRequest $record) => 'Accept');
+        $this->modalHeading(fn(?Model $record) => 'Accept Shift');
+        $this->modalDescription(fn(?Model $record) => 'Are you sure you want to accept this shift?');
+        $this->modalCancelActionLabel(fn(?Model $record) => 'Cancel');
+        $this->modalSubmitActionLabel(fn(?Model $record) => 'Accept');
         $this->modalWidth('sm');
-        $this->action(function (?ShiftRequest $record, array $arguments) {
+        $this->action(function (?Model $record, array $arguments) {
             dd($arguments);
             if (!$record) {
                 return;

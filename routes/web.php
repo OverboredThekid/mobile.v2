@@ -18,7 +18,6 @@ use App\Livewire\Company\Contacts;
 use App\Livewire\User\TimeOff;
 use App\Livewire\User\Availability;
 use App\Livewire\User\MyHours;
-use App\Livewire\Ui\Modal\Demo;
 
 // Public routes (no authentication required)
 Route::get('/login', Login::class)->name('login');
@@ -52,7 +51,4 @@ Route::middleware(['auth.token'])->group(function () {
 
     // Admin routes
     Route::get('/manage-punches', ManagePunches::class)->name('manage-punches');
-    
-    // Modal Demo Route
-    Route::get('/modal-demo', Demo::class)->name('modal-demo');
 });

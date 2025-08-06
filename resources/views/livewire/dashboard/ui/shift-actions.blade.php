@@ -23,6 +23,7 @@
         <div class="flex gap-1 w-full max-w-2xl">
             @if($shiftRequestsCount > 0)
                 <button
+                    wire:click="mountAction('shiftRequestList')"
                     class="flex-1 relative bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 border-t border-red-400/30 border-l-2 border-r-2 border-red-400/50 border-b-4 border-red-700/80"
                    >
                     <div class="flex items-center justify-center gap-2">
@@ -42,6 +43,7 @@
 
             @if($availableShiftsCount > 0)
                 <button
+                    wire:click="mountAction('availableShiftsList')"
                     class="flex-1 relative bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 border-t border-blue-400/30 border-l-2 border-r-2 border-blue-400/50 border-b-4 border-blue-700/80"
                     >
                     <div class="flex items-center justify-center gap-2">
@@ -60,4 +62,5 @@
             @endif
         </div>
     @endif
+    <x-filament-actions::modals />
 </div>

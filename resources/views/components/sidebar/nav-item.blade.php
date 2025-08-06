@@ -4,10 +4,21 @@
     'label',
     'color' => 'gray',
     'badgeId' => null,
+    'badgeCount' => 0,
 ])
 
 @php
     $isActive = request()->routeIs($route);
+    
+    // Map color to badge background color
+    $badgeColor = match($color) {
+        'red' => 'bg-red-600',
+        'yellow' => 'bg-yellow-600',
+        'green' => 'bg-green-600',
+        'blue' => 'bg-blue-600',
+        'purple' => 'bg-purple-600',
+        default => 'bg-gray-600'
+    };
 @endphp
 
 <a wire:navigate
@@ -23,7 +34,9 @@
         <span>{{ $label }}</span>
     </div>
 
-    @if ($badgeId)
-        <span id="{{ $badgeId }}" class="text-xs bg-{{ $color }}-600 text-white rounded-full px-2 py-0.5 hidden"></span>
+    @if ($badgeId && $badgeCount > 0)
+        <span id="{{ $badgeId }}" class="text-xs {{ $badgeColor }} text-white rounded-full px-2 py-0.5 font-bold min-w-[1.25rem] text-center">
+            {{ $badgeCount }}
+        </span>
     @endif
 </a>

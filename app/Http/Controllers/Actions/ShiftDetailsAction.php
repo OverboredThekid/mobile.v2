@@ -52,13 +52,20 @@ class ShiftDetailsAction extends Action
         $this->modalSubmitAction(false);
         $this->record(
             function (array $arguments) {
+                static $cachedShift = null;
+
+                if ($cachedShift) {
+                    return $cachedShift;
+                }
+
                 $id = $arguments['shift_id'] ?? null;
 
                 if (! $id) {
                     return null;
                 }
 
-                return app(ModelAutoResolver::class)->resolve($id);
+                $cachedShift = app(ModelAutoResolver::class)->resolve($id);
+                return $cachedShift;
             }
         );
     }

@@ -7,8 +7,10 @@ use App\Http\Controllers\Actions\BailoutAction;
 use App\Http\Controllers\Actions\PunchAction;
 use App\Http\Controllers\Actions\RequestShiftAction;
 use App\Http\Controllers\Actions\AcceptShiftAction;
+use App\Http\Controllers\Actions\AvailableShiftsListAction;
 use App\Http\Controllers\Actions\DeclineShiftAction;
 use App\Http\Controllers\Actions\ShiftDetailsAction;
+use App\Http\Controllers\Actions\ShiftRequestListAction;
 use App\Http\Controllers\Actions\VenueDetailsAction;
 use Filament\Actions\Action;
 
@@ -103,4 +105,19 @@ trait HasShiftActions
         return VenueDetailsAction::make('venueDetails');
     }
 
+    /**
+     * Shift Request List Modal
+     */
+    public function shiftRequestListAction(): Action
+    {
+        return ShiftRequestListAction::make('shiftRequestList');
+    }
+
+    /**
+     * Available Shifts List Modal
+     */
+    public function availableShiftsListAction(): Action
+    {
+        return AvailableShiftsListAction::make('availableShiftsList');
+    }
 }

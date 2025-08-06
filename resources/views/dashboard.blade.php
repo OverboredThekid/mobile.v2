@@ -16,5 +16,8 @@
                 <livewire:dashboard.ui.shift-actions />
             </div>
         </div>
+
+        <!-- Week Calendar -->
+        <livewire:dashboard.ui.week-calendar />
     </div>
 @endsection

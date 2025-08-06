@@ -8,12 +8,13 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
+use Illuminate\Database\Eloquent\Model;
 
 class DeclineShiftAction extends Action
 {
     public function setUp(): void
     {
-        $this->label(fn(?ShiftRequest $record) => 'Decline');
+        $this->label(fn(?Model $record) => 'Decline');
         $this->color('danger');
         $this->record(function (array $arguments) {
             static $cachedShiftRequest = null;
@@ -32,10 +33,10 @@ class DeclineShiftAction extends Action
                 ->body("You can try again in {$exception->secondsUntilAvailable} seconds."),
         );
         $this->requiresConfirmation();
-        $this->modalHeading(fn(?ShiftRequest $record) => 'Decline Shift');
-        $this->modalDescription(fn(?ShiftRequest $record) => 'Are you sure you want to decline this shift?');
-        $this->modalCancelActionLabel(fn(?ShiftRequest $record) => 'Cancel');
-        $this->modalSubmitActionLabel(fn(?ShiftRequest $record) => 'Decline');
+        $this->modalHeading(fn(?Model $record) => 'Decline Shift');
+        $this->modalDescription(fn(?Model $record) => 'Are you sure you want to decline this shift?');
+        $this->modalCancelActionLabel(fn(?Model $record) => 'Cancel');
+        $this->modalSubmitActionLabel(fn(?Model $record) => 'Decline');
         $this->modalWidth('sm');
         $this->schema([
             Section::make('Reason (Optional)')
@@ -47,7 +48,7 @@ class DeclineShiftAction extends Action
                 ])->collapsed(true)
                 ->contained(false),
         ]);
-        $this->action(function (?ShiftRequest $record, array $data) {
+        $this->action(function (?Model $record, array $data) {
             if (!$record) {
                 return;
             }

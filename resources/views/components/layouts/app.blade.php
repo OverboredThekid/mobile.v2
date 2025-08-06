@@ -24,14 +24,14 @@
 </head>
 
 <body class="antialiased bg-gray-950 text-white">
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex max-h-screen overflow-hidden">
         <!-- Sidebar - Converted to Blade component -->
         @include('components.sidebar')
         
         <!-- Main content area -->
         <div class="flex-1 flex flex-col overflow-hidden md:ml-0">
             <!-- Main content -->
-            <main class="flex-1 overflow-y-auto pb-24 pt-5 px-4 md:px-6">
+            <main class="flex-1 overflow-y-auto pb-30 pt-5 px-4 md:px-6">
                 @hasSection('content')
                     @yield('content')
                 @else

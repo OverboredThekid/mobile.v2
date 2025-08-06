@@ -24,5 +24,28 @@ enum shiftActions: string
             self::VENUE_DETAILS => 'Venue Details',
         };
     }
+
+    public static function getMyShiftActions(): array
+    {
+        return [
+            self::PUNCH,
+            self::BAILOUT,
+        ];
+    }
+
+    public static function getShiftRequestActions(): array
+    {
+        return [
+            self::ACCEPT_SHIFT,
+            self::DECLINE_SHIFT,
+        ];
+    }
+
+    public static function getAvailableShiftActions(): array
+    {
+        return [
+            self::REQUEST_SHIFT,
+        ];
+    }
     
 }

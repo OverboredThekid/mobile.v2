@@ -21,7 +21,6 @@ class VenueDetailsAction extends Action
         $this->color('gray');
         $this->icon('heroicon-o-information-circle');
         $this->link();
-        $this->slideOver();
         $this->rateLimit(5)
         ->rateLimitedNotification(
            fn (TooManyRequestsException $exception): Notification => Notification::make()
@@ -32,20 +31,15 @@ class VenueDetailsAction extends Action
         $this->modalContent(function (?Model $record, Component $livewire) {
             // If no record is provided, try to get venue data from the livewire component
             if (!$record) {
-                $venueData = $livewire->getProperty('shift')['venue'] ?? null;
+                $venueData = $livewire->shift['venue'] ?? null;
                 
                 if ($venueData) {
-                    // Define JSON fields that need to be decoded
-                    $jsonFields = ['venue_type', 'venue_color', 'address'];
-                    
-                    // Decode JSON fields
-                    $venueData = collect($venueData)->map(function ($value, $key) use ($jsonFields) {
-                        if (in_array($key, $jsonFields) && is_string($value)) {
-                            $decoded = json_decode($value, true);
-                            return $decoded !== null ? $decoded : $value;
-                        }
-                        return $value;
-                    })->toArray();
+                    $venue = Venue::find($venueData['id']);
+                    if ($venue) {
+                        return view('filament.actions.venue-details-modal', [
+                            'venue' => $venue
+                        ]);
+                    }
                 } else {
                     return view('filament.actions.venue-details-modal', [
                         'venue' => null
